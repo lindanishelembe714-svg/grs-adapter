@@ -1,0 +1,34 @@
+name: Build and Deploy to Azure (User Auth)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Azure (Device Code Flow)
+        uses: azure/login@v2
+        with:
+          auth-type: device-code
+
+      - name: Build and push image
+        run: |
+          docker build -t lindanigrs2025.azurecr.io/grs-adapter:${{ github.sha }} .
+          docker push lindanigrs2025.azurecr.io/grs-adapter:${{ github.sha }}
+
+      - name: Deploy to ACI
+        run: |
+          az container create \
+            --resource-group GRS-Practice-RG \
+            --name grs-adapter-aci \
+            --image lindanigrs2025.azurecr.io/grs-adapter:${{ github.sha }} \
+            --registry-login-server lindanigrs2025.azurecr.io \
+            --registry-username lindanigrs2025 \
+            --registry-password CgZOJHqUzIroHVd5ktI0O5oiQwTKqEPc4Ka1k3iUfKLt7OuMfhcDJQQJ99CFACrIdLPEqg7NAAACAZCR27Og \
+            --dns-name-label grs-adapter-${{ github.run_number }} \
+            --ports 80
